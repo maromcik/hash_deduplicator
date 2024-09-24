@@ -16,9 +16,11 @@ fn _list_files(vec: &mut Vec<PathBuf>, path: PathBuf) -> io::Result<()> {
     Ok(())
 }
 
-pub fn list_files<T: Into<PathBuf>>(path: T) -> io::Result<Vec<PathBuf>> {
+pub fn list_files<T: Into<PathBuf>>(paths: Vec<T>) -> io::Result<Vec<PathBuf>> {
     let mut vec = Vec::new();
-    let path = path.into();
-    _list_files(&mut vec, path)?;
+    for path in paths {
+        let path = path.into();
+        _list_files(&mut vec, path)?;
+    }
     Ok(vec)
 }

@@ -33,9 +33,7 @@ pub fn calculate_hash(path: &PathBuf) -> io::Result<Digest> {
 }
 
 
-pub fn process() -> io::Result<()> {
-    let files = list_files("/mnt/SamsungSSD/Pictures")?;
-
+pub fn process(files: Vec<PathBuf>) -> io::Result<()> {
     let hashes = files
         .par_iter()
         .map(|p| calculate_hash(&p))
