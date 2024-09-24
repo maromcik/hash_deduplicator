@@ -1,9 +1,8 @@
 use std::{fs, io};
 use std::path::PathBuf;
-use md5;
 
 
-fn _list_files(vec: &mut Vec<PathBuf>, path: PathBuf) -> io::Result<()>  {
+fn _list_files(vec: &mut Vec<PathBuf>, path: PathBuf) -> io::Result<()> {
     if path.is_dir() {
         let paths = fs::read_dir(&path)?;
         for path_result

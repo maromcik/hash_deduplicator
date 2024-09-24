@@ -1,0 +1,9 @@
+[package]
+name = "hash_deduplicator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+md5 = "0.7.0"
+rayon = "1.10.0"
+walkdir = "2"
