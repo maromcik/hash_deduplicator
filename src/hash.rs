@@ -1,4 +1,3 @@
-use crate::search::list_files;
 use md5;
 use md5::Digest;
 use rayon::prelude::*;
@@ -33,7 +32,7 @@ pub fn calculate_hash(path: &PathBuf) -> io::Result<Digest> {
 }
 
 
-pub fn process(files: Vec<PathBuf>) -> io::Result<()> {
+pub fn process(files: Vec<PathBuf>) -> io::Result<HashMap<Digest, Vec<String>>> {
     let hashes = files
         .par_iter()
         .map(|p| calculate_hash(&p))
@@ -51,13 +50,8 @@ pub fn process(files: Vec<PathBuf>) -> io::Result<()> {
         }
     }
 
-    duplicates.retain(|k, v| v.len() > 1);
+    duplicates.retain(|_, v| v.len() > 1);
 
-    for (k, v) in duplicates.iter() {
-        println!("digest: {:?}, path: {:?}", k, v);
-    }
-    println!("Duplicates count: {}", duplicates.len());
-    Ok(())
-
+    Ok(duplicates)
 }
 

@@ -1,4 +1,4 @@
-use std::io;
+use std::{fs, io};
 use crate::hash::process;
 mod search;
 mod hash;
@@ -13,5 +13,24 @@ fn main() -> io::Result<()>{
         println!("{p}");
     }
     let files = list_files(paths)?;
-    process(files)
+    let duplicates = process(files)?;
+
+    for (k, v) in duplicates.iter() {
+        println!("digest: {:?}, path: {:?}", k, v);
+        let _ = v
+            .into_iter()
+            .skip(1)
+            .map(|f| delete_file(f))
+            .collect::<Vec<io::Result<()>>>();
+    }
+
+    println!("Duplicates count: {}", duplicates.len());
+
+    Ok(())
+}
+
+fn delete_file(file: &str) -> io::Result<()> {
+    fs::remove_file(file)?;
+    println!("{file} deleted");
+    Ok(())
 }
