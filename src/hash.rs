@@ -10,6 +10,7 @@ use std::path::PathBuf;
 
 
 pub fn calculate_hash(path: &PathBuf) -> io::Result<Digest> {
+    println!("Calculating hash: {:?}", path);
     let f = File::open(path)?;
     let len = f.metadata()?.len();
     let buf_len = len.min(1_000_000) as usize;
