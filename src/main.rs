@@ -44,12 +44,14 @@ fn main() -> io::Result<()> {
             write!(log, "{}\n", f)?;
             if cli.delete {
                 delete_file(f)?;
+                sum += 1;
             }
-            sum += 1;
         }
     }
     println!("Duplicates count: {}", duplicates.len());
-    println!("Deleted files: {sum}");
+    if cli.delete {
+        println!("Deleted files: {sum}");
+    }
     Ok(())
 }
 
