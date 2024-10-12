@@ -9,8 +9,10 @@ use std::iter::zip;
 use std::path::PathBuf;
 
 
-pub fn calculate_hash(path: &PathBuf) -> io::Result<Digest> {
-    println!("Calculating hash: {:?}", path);
+pub fn calculate_hash(path: &PathBuf, verbose: bool) -> io::Result<Digest> {
+    if verbose {
+        println!("Calculating hash: {:?}", path);
+    }
     let f = File::open(path)?;
     let len = f.metadata()?.len();
     let buf_len = len.min(1_000_000) as usize;
@@ -33,10 +35,10 @@ pub fn calculate_hash(path: &PathBuf) -> io::Result<Digest> {
 }
 
 
-pub fn process(files: Vec<PathBuf>) -> io::Result<HashMap<Digest, Vec<String>>> {
+pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<Digest, Vec<String>>> {
     let hashes = files
         .par_iter()
-        .map(|p| calculate_hash(&p))
+        .map(|p| calculate_hash(&p, verbose))
         .filter_map(|h| h.ok())
         .collect::<Vec<Digest>>();
 
