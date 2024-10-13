@@ -12,7 +12,7 @@ use crate::search::list_files;
 #[clap(author, version, about, long_about = None)]
 struct Cli {
     /// Paths to files
-    #[clap(short, long, value_name = "PATH_TO_FILE", value_delimiter = ' ', num_args = 1..)]
+    #[clap(short, long, value_name = "PATH_TO_FILE", num_args = 1..)]
     paths: Vec<String>,
 
     /// delete files
