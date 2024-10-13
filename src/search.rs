@@ -3,6 +3,9 @@ use std::path::PathBuf;
 
 
 fn _list_files(vec: &mut Vec<PathBuf>, path: PathBuf) -> io::Result<()> {
+    if !path.exists() {
+        return Err(io::Error::new(io::ErrorKind::NotFound, "File not found"));
+    }
     if path.is_dir() {
         let paths = fs::read_dir(&path)?;
         for path_result
