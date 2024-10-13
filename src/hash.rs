@@ -8,7 +8,6 @@ use std::io::{BufRead, BufReader};
 use std::iter::zip;
 use std::path::PathBuf;
 
-
 pub fn calculate_hash(path: &PathBuf, verbose: bool) -> io::Result<Digest> {
     if verbose {
         println!("Calculating hash: {:?}", path);
@@ -34,7 +33,6 @@ pub fn calculate_hash(path: &PathBuf, verbose: bool) -> io::Result<Digest> {
     Ok(context.compute())
 }
 
-
 pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<Digest, Vec<String>>> {
     let hashes = files
         .par_iter()
@@ -57,4 +55,3 @@ pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<Digest,
 
     Ok(duplicates)
 }
-

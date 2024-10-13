@@ -1,12 +1,14 @@
-use std::{fs, io};
 use crate::hash::process;
-mod search;
+use std::collections::HashMap;
+use std::{fs, io};
 mod hash;
+mod search;
 
+use crate::search::list_files;
+use clap::Parser;
+use md5::Digest;
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use clap::Parser;
-use crate::search::list_files;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -34,6 +36,26 @@ fn main() -> io::Result<()> {
     let files = list_files(cli.paths)?;
     let duplicates = process(files, cli.verbose)?;
 
+    for (k, v) in duplicates.iter() {
+        println!("digest: {:?}, path: {:?}", k, v);
+    }
+    println!("Duplicates count: {}", duplicates.len());
+
+    if cli.delete && duplicates.len() > 0 {
+        println!("Do you really want to delete all duplicates (keep the first file in the list) y/n: ");
+        let mut buffer = String::new();
+        let stdin = io::stdin(); // We get `Stdin` here.
+        stdin.read_line(&mut buffer)?;
+        buffer = buffer.to_lowercase().trim().to_string();
+        if buffer == "y" || buffer == "yes" {
+            delete(duplicates)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn delete(duplicates: HashMap<Digest, Vec<String>>) -> io::Result<()> {
     let deleted_files = File::create("deleted_files.txt")?;
     let mut log = BufWriter::new(deleted_files);
     let mut sum = 0;
@@ -42,16 +64,12 @@ fn main() -> io::Result<()> {
 
         for f in v.iter().skip(1) {
             write!(log, "{}\n", f)?;
-            if cli.delete {
-                delete_file(f)?;
-                sum += 1;
-            }
+            delete_file(f)?;
+            sum += 1;
         }
     }
-    println!("Duplicates count: {}", duplicates.len());
-    if cli.delete {
-        println!("Deleted files: {sum}");
-    }
+    println!("Deleted files: {sum}");
+
     Ok(())
 }
 
