@@ -1,18 +1,24 @@
 use md5;
 use md5::Digest;
 use rayon::prelude::*;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader};
-use std::iter::zip;
 use std::path::PathBuf;
 
-pub fn calculate_hash(path: &PathBuf, verbose: bool) -> io::Result<Digest> {
+pub struct ProcessedFile {
+    pub path: PathBuf,
+    pub hash: Digest,
+    pub size: u64,
+}
+
+pub fn calculate_hash(path: PathBuf, verbose: bool) -> io::Result<ProcessedFile> {
     if verbose {
         println!("Calculating hash: {:?}", path);
     }
-    let f = File::open(path)?;
+    let f = File::open(&path)?;
     let len = f.metadata()?.len();
     let buf_len = len.min(1_000_000) as usize;
     let mut buf = BufReader::with_capacity(buf_len, f);
@@ -30,28 +36,32 @@ pub fn calculate_hash(path: &PathBuf, verbose: bool) -> io::Result<Digest> {
         let part_len = part.len();
         buf.consume(part_len);
     }
-    Ok(context.compute())
+    Ok(ProcessedFile {
+        path,
+        hash: context.compute(),
+        size: len,
+    })
 }
 
-pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<Digest, Vec<String>>> {
-    let hashes = files
-        .par_iter()
-        .map(|p| calculate_hash(&p, verbose))
+pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<Digest, Vec<ProcessedFile>>> {
+    let processed_files = files
+        .into_par_iter()
+        .map(|p| calculate_hash(p, verbose))
         .filter_map(|h| h.ok())
-        .collect::<Vec<Digest>>();
+        .collect::<Vec<ProcessedFile>>();
 
-    let mut duplicates: HashMap<Digest, Vec<String>> = HashMap::new();
-    for (hash, path) in zip(hashes.into_iter(), files.into_iter()) {
-        let str_path = path.into_os_string().into_string().unwrap();
-        if duplicates.contains_key(&hash) {
-            let k = duplicates.get_mut(&hash).unwrap();
-            k.push(str_path);
-        } else {
-            duplicates.insert(hash, vec![str_path]);
-        }
+    let mut duplicates: HashMap<Digest, Vec<ProcessedFile>> = HashMap::new();
+    for processed_file in processed_files.into_iter() {
+
+        match duplicates.entry(processed_file.hash) {
+            Entry::Vacant(e) => { e.insert(vec![processed_file]); },
+            Entry::Occupied(mut e) => { e.get_mut().push(processed_file); },
+        };
+
     }
 
     duplicates.retain(|_, v| v.len() > 1);
 
+    duplicates.iter_mut().for_each(|(_, v)| v.sort_by(|f1, f2| f2.size.cmp(&f1.size) ));
     Ok(duplicates)
 }

@@ -1,4 +1,4 @@
-use crate::hash::process;
+use crate::hash::{process, ProcessedFile};
 use std::collections::HashMap;
 use std::{fs, io};
 mod hash;
@@ -9,6 +9,7 @@ use clap::Parser;
 use md5::Digest;
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -37,11 +38,11 @@ fn main() -> io::Result<()> {
     let duplicates = process(files, cli.verbose)?;
 
     for (k, v) in duplicates.iter() {
-        println!("digest: {:?}, path: {:?}", k, v);
+        println!("digest: {:?}, path: {:?}", k, v.iter().map(|f| &f.path).collect::<Vec<&PathBuf>>());
     }
     println!("Duplicates count: {}", duplicates.len());
 
-    if cli.delete && duplicates.len() > 0 {
+    if cli.delete && !duplicates.is_empty() {
         println!("Do you really want to delete all duplicates (keep the first file in the list) y/n: ");
         let mut buffer = String::new();
         let stdin = io::stdin(); // We get `Stdin` here.
@@ -55,16 +56,16 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn delete(duplicates: HashMap<Digest, Vec<String>>) -> io::Result<()> {
+fn delete(duplicates: HashMap<Digest, Vec<ProcessedFile>>) -> io::Result<()> {
     let deleted_files = File::create("deleted_files.txt")?;
     let mut log = BufWriter::new(deleted_files);
     let mut sum = 0;
     for (k, v) in duplicates.iter() {
-        println!("digest: {:?}, path: {:?}", k, v);
+        println!("digest: {:?}, path: {:?}", k, v.iter().map(|f| &f.path).collect::<Vec<&PathBuf>>());
 
         for f in v.iter().skip(1) {
-            write!(log, "{}\n", f)?;
-            delete_file(f)?;
+            write!(log, "{:?}\n", f.path)?;
+            delete_file(&f.path)?;
             sum += 1;
         }
     }
@@ -73,8 +74,8 @@ fn delete(duplicates: HashMap<Digest, Vec<String>>) -> io::Result<()> {
     Ok(())
 }
 
-fn delete_file(file: &str) -> io::Result<()> {
+fn delete_file(file: &PathBuf) -> io::Result<()> {
     fs::remove_file(file)?;
-    println!("{file} deleted");
+    println!("{} deleted", file.to_str().unwrap_or_default());
     Ok(())
 }
