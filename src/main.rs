@@ -36,11 +36,13 @@ fn main() -> io::Result<()> {
     }
     let files = list_files(cli.paths)?;
     let duplicates = process(files, cli.verbose)?;
-
+    let mut total_size = 0;
     for (k, v) in duplicates.iter() {
         println!("digest: {:?}, path: {:?}", k, v.iter().map(|f| &f.path).collect::<Vec<&PathBuf>>());
+        total_size += v.iter().skip(1).map(|f| f.size).sum::<u64>();
     }
     println!("Duplicates count: {}", duplicates.len());
+    println!("Duplicates size: {} MB", total_size / 1024 / 1024);
 
     if cli.delete && !duplicates.is_empty() {
         println!("Do you really want to delete all duplicates (keep the first file in the list) y/n: ");
@@ -60,16 +62,19 @@ fn delete(duplicates: HashMap<Digest, Vec<ProcessedFile>>) -> io::Result<()> {
     let deleted_files = File::create("deleted_files.txt")?;
     let mut log = BufWriter::new(deleted_files);
     let mut sum = 0;
+    let mut total_size = 0;
     for (k, v) in duplicates.iter() {
         println!("digest: {:?}, path: {:?}", k, v.iter().map(|f| &f.path).collect::<Vec<&PathBuf>>());
 
         for f in v.iter().skip(1) {
             write!(log, "{:?}\n", f.path)?;
             delete_file(&f.path)?;
+            total_size += f.size;
             sum += 1;
         }
     }
     println!("Deleted files: {sum}");
+    println!("Freed space: {} MB", total_size / 1024 / 1024);
 
     Ok(())
 }
