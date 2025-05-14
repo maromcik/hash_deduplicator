@@ -1,15 +1,13 @@
 use crate::hash::{process, FileDigest, ProcessedFile};
 use std::collections::HashMap;
 use std::{fs, io};
-mod hash;
-mod search;
-
 use crate::search::list_files;
 use clap::Parser;
-use md5::Digest;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::PathBuf;
+mod hash;
+mod search;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -38,7 +36,7 @@ fn main() -> io::Result<()> {
     let duplicates = process(files, cli.verbose)?;
     let mut total_size = 0;
     for (k, v) in duplicates.iter() {
-        println!("digest: {:?}, path: {:?}", k, v.iter().map(|f| &f.path).collect::<Vec<&PathBuf>>());
+        println!("digest: {}, path: {:?}", k, v.iter().map(|f| &f.path).collect::<Vec<&PathBuf>>());
         total_size += v.iter().skip(1).map(|f| f.size).sum::<u64>();
     }
     println!("Duplicates count: {}", duplicates.len());

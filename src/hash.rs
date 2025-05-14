@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use sha2::{Digest, Sha256};
 
-pub type FileDigest = Vec<u8>;
+pub type FileDigest = String;
 
 pub struct ProcessedFile {
     pub path: PathBuf,
@@ -37,7 +37,7 @@ pub fn calculate_hash(path: PathBuf, verbose: bool) -> io::Result<ProcessedFile>
         let part_len = part.len();
         buf.consume(part_len);
     }
-    let hash = hasher.finalize().to_vec();
+    let hash = hex::encode(hasher.finalize());
     Ok(ProcessedFile {
         path,
         hash,
