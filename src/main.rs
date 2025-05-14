@@ -1,4 +1,4 @@
-use crate::hash::{process, ProcessedFile};
+use crate::hash::{process, FileDigest, ProcessedFile};
 use std::collections::HashMap;
 use std::{fs, io};
 mod hash;
@@ -58,7 +58,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn delete(duplicates: HashMap<Digest, Vec<ProcessedFile>>) -> io::Result<()> {
+fn delete(duplicates: HashMap<FileDigest, Vec<ProcessedFile>>) -> io::Result<()> {
     let deleted_files = File::create("deleted_files.txt")?;
     let mut log = BufWriter::new(deleted_files);
     let mut sum = 0;

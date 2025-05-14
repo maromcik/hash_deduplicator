@@ -1,5 +1,3 @@
-use md5;
-use md5::Digest;
 use rayon::prelude::*;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -7,10 +5,13 @@ use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
+use sha2::{Digest, Sha256};
+
+pub type FileDigest = Vec<u8>;
 
 pub struct ProcessedFile {
     pub path: PathBuf,
-    pub hash: Digest,
+    pub hash: FileDigest,
     pub size: u64,
 }
 
@@ -22,40 +23,43 @@ pub fn calculate_hash(path: PathBuf, verbose: bool) -> io::Result<ProcessedFile>
     let len = f.metadata()?.len();
     let buf_len = len.min(1_000_000) as usize;
     let mut buf = BufReader::with_capacity(buf_len, f);
-    let mut context = md5::Context::new();
+    let mut hasher = Sha256::new();
     loop {
         // Get a chunk of the file
-        let part = buf.fill_buf()?;
+        let part: &[u8] = buf.fill_buf()?;
         // If that chunk was empty, the reader has reached EOF
         if part.is_empty() {
             break;
         }
         // Add chunk to the md5
-        context.consume(part);
+        sha2::Digest::update(&mut hasher, part);
         // Tell the buffer that the chunk is consumed
         let part_len = part.len();
         buf.consume(part_len);
     }
+    let hash = hasher.finalize().to_vec();
     Ok(ProcessedFile {
         path,
-        hash: context.compute(),
+        hash,
         size: len,
     })
 }
 
-pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<Digest, Vec<ProcessedFile>>> {
+pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<FileDigest, Vec<ProcessedFile>>> {
     let processed_files = files
         .into_par_iter()
         .map(|p| calculate_hash(p, verbose))
         .filter_map(|h| h.ok())
         .collect::<Vec<ProcessedFile>>();
 
-    let mut duplicates: HashMap<Digest, Vec<ProcessedFile>> = HashMap::new();
+    let mut duplicates: HashMap<FileDigest, Vec<ProcessedFile>> = HashMap::new();
     for processed_file in processed_files.into_iter() {
-
-        match duplicates.entry(processed_file.hash) {
-            Entry::Vacant(e) => { e.insert(vec![processed_file]); },
-            Entry::Occupied(mut e) => { e.get_mut().push(processed_file); },
+        match duplicates.entry(processed_file.hash.clone()) {
+            Entry::Vacant(e) => {
+                e.insert(vec![processed_file]); },
+            Entry::Occupied(mut e) => {
+                e.get_mut().push(processed_file); 
+            },
         };
 
     }
