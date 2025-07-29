@@ -54,14 +54,7 @@ pub fn process(files: Vec<PathBuf>, verbose: bool) -> io::Result<HashMap<FileDig
 
     let mut duplicates: HashMap<FileDigest, Vec<ProcessedFile>> = HashMap::new();
     for processed_file in processed_files.into_iter() {
-        match duplicates.entry(processed_file.hash.clone()) {
-            Entry::Vacant(e) => {
-                e.insert(vec![processed_file]); },
-            Entry::Occupied(mut e) => {
-                e.get_mut().push(processed_file); 
-            },
-        };
-
+        duplicates.entry(processed_file.hash.clone()).or_default().push(processed_file);
     }
 
     duplicates.retain(|_, v| v.len() > 1);
